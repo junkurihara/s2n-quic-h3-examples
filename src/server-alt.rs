@@ -97,12 +97,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     error!("{}: Failed to read some certificates and keys {}", SERVER_NAME, e)
   };
 
+  // Example using io with some socket options
+  let io = provider::io::tokio::Builder::default()
+    .with_receive_address(opt.listen)?
+    .with_reuse_port()?
+    .build()?;
+
   let tls = provider::tls::rustls::Server::builder()
     .with_cert_resolver(Arc::new(resolver_global))?
     .with_application_protocols(vec![ALPN].iter())?
     .build()?;
 
-  let mut server = Server::builder().with_tls(tls)?.with_io(opt.listen)?.start()?;
+  let mut server = Server::builder().with_tls(tls)?.with_io(io)?.start()?;
 
   info!("listening on {}", opt.listen);
 
