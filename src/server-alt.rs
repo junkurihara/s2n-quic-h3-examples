@@ -1,8 +1,12 @@
 /// This is exactly a port of [h3/examples/server.rs](https://github.com/hyperium/h3/blob/master/examples/server.rs) with `h3-quinn` to the one with `s2n-quic-h3`.
 use bytes::{Bytes, BytesMut};
+use h3::{
+  error::ErrorLevel,
+  quic::{BidiStream, Connection as ConnectionQuic},
+  server::{Connection as ConnectionH3, RequestStream},
+};
 use http::{Request, StatusCode};
 use s2n_quic::{provider, Server};
-use s2n_quic_h3::h3::{error::ErrorLevel, quic::BidiStream, server::RequestStream};
 use s2n_quic_rustls::rustls::{
   self,
   sign::{any_supported_type, CertifiedKey},
@@ -120,47 +124,55 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let root = root.clone();
 
     tokio::spawn(async move {
-      let mut h3_conn =
-        match s2n_quic_h3::h3::server::Connection::<_, Bytes>::new(s2n_quic_h3::Connection::new(new_conn)).await {
-          Ok(v) => v,
-          Err(e) => {
-            error!("establishing new http/3 connection failed: {}", e);
-            return;
-          }
-        };
-      info!("new connection established");
-
-      loop {
-        match h3_conn.accept().await {
-          Ok(Some((req, stream))) => {
-            info!("new request: {:#?}", req);
-
-            let root = root.clone();
-
-            tokio::spawn(async {
-              if let Err(e) = handle_request(req, stream, root).await {
-                error!("handling request failed: {}", e);
-              }
-            });
-          }
-
-          // indicating no more streams to be received
-          Ok(None) => {
-            break;
-          }
-
-          Err(err) => {
-            error!("error on accept {}", err);
-            match err.get_error_level() {
-              ErrorLevel::ConnectionError => break,
-              ErrorLevel::StreamError => continue,
-            }
-          }
-        }
-      }
+      let _res = handle_connection(s2n_quic_h3::Connection::new(new_conn), root).await;
     });
   }
 
+  Ok(())
+}
+
+/// This compatible with h3-quinn.
+async fn handle_connection<C>(quic_connection: C, root: Arc<Option<PathBuf>>) -> Result<(), Box<dyn std::error::Error>>
+where
+  C: ConnectionQuic<Bytes>,
+  <C as ConnectionQuic<Bytes>>::BidiStream: BidiStream<Bytes> + Send + 'static,
+{
+  let mut h3_conn = match ConnectionH3::<_, Bytes>::new(quic_connection).await {
+    Ok(v) => v,
+    Err(e) => {
+      error!("establishing new http/3 connection failed: {}", e);
+      return Ok(());
+    }
+  };
+  info!("new connection established");
+  loop {
+    match h3_conn.accept().await {
+      Ok(Some((req, stream))) => {
+        info!("new request: {:#?}", req);
+
+        let root = root.clone();
+
+        tokio::spawn(async {
+          if let Err(e) = handle_request(req, stream, root).await {
+            error!("handling request failed: {}", e);
+          }
+        });
+      }
+
+      // indicating no more streams to be received
+      Ok(None) => {
+        break;
+      }
+
+      Err(err) => {
+        error!("error on accept {}", err);
+        match err.get_error_level() {
+          ErrorLevel::ConnectionError => break,
+          ErrorLevel::StreamError => continue,
+        }
+      }
+    }
+  }
   Ok(())
 }
 

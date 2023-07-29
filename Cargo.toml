@@ -9,6 +9,7 @@ publish = false
 [dev-dependencies]
 bytes = "1.4.0"
 futures = "0.3.28"
+h3 = "0.0.2"
 http = "0.2.9"
 rustls = { version = "0.21.5", features = ["dangerous_configuration"] }
 rustls-native-certs = "0.6.3"
