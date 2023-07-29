@@ -8,21 +8,17 @@ publish = false
 
 [dev-dependencies]
 bytes = "1.4.0"
+futures = "0.3.28"
 http = "0.2.9"
+rustls = { version = "0.21.5", features = ["dangerous_configuration"] }
+rustls-native-certs = "0.6.3"
 s2n-quic = { path = "./s2n-quic/quic/s2n-quic/", features = [
   "provider-tls-rustls",
 ] }
 s2n-quic-h3 = { path = "./s2n-quic/quic/s2n-quic-h3/" }
+s2n-quic-rustls = { path = "./s2n-quic/quic/s2n-quic-rustls/" }
 structopt = "0.3.26"
-tokio = { version = "1.29.1", default-features = false, features = [
-  "net",
-  "rt-multi-thread",
-  "time",
-  "sync",
-  "macros",
-  "fs",
-  "io-util",
-] }
+tokio = { version = "1.29.1", default-features = false, features = ["full"] }
 tracing = "0.1.37"
 tracing-subscriber = { version = "0.3.17", default-features = false, features = [
   "fmt",
@@ -35,6 +31,10 @@ tracing-subscriber = { version = "0.3.17", default-features = false, features = 
 [[example]]
 name = "server"
 path = "./src/server.rs"
+
+[[example]]
+name = "client"
+path = "./src/client.rs"
 
 [[example]]
 name = "server-alt"

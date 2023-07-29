@@ -1,5 +1,4 @@
 /// This is exactly a port of [h3/examples/server.rs](https://github.com/hyperium/h3/blob/master/examples/server.rs) with `h3-quinn` to the one with `s2n-quic-h3`.
-///
 use bytes::{Bytes, BytesMut};
 use http::{Request, StatusCode};
 use s2n_quic::{provider, Server};
